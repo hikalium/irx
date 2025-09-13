@@ -20,6 +20,14 @@ enum Commands {
         #[arg(long)]
         appliance: String,
     },
+    /// Set the state of an appliance
+    Set {
+        #[arg(long)]
+        appliance: String,
+
+        #[arg(long)]
+        temperature: Option<String>,
+    },
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -28,7 +36,7 @@ struct Device {
     id: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 struct Appliance {
     id: String,
     nickname: String,
@@ -38,7 +46,7 @@ struct Appliance {
     settings: Option<AcSettings>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 struct AcSettings {
     temp: String,
     mode: String,
@@ -122,6 +130,64 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             app.appliance_type
                         );
                     }
+                }
+            } else {
+                eprintln!("Appliance with ID '{}' not found.", appliance);
+            }
+        }
+        Commands::Set {
+            appliance,
+            temperature,
+        } => {
+            let appliances = client
+                .get("https://api.nature.global/1/appliances")
+                .bearer_auth(token.clone())
+                .send()
+                .await?
+                .json::<Vec<Appliance>>()
+                .await?;
+
+            let target_appliance = appliances.iter().find(|a| a.id == *appliance).cloned();
+
+            if let Some(app) = target_appliance {
+                if app.appliance_type != "AC" {
+                    eprintln!(
+                        "Error: Appliance '{}' is not an Air Conditioner.",
+                        app.nickname
+                    );
+                    return Ok(());
+                }
+
+                let mut form_data = HashMap::new();
+                if let Some(temp) = temperature {
+                    form_data.insert("temperature", temp.clone());
+                }
+
+                if form_data.is_empty() {
+                    println!("No settings to change.");
+                    return Ok(());
+                }
+
+                let url = format!(
+                    "https://api.nature.global/1/appliances/{}/aircon_settings",
+                    appliance
+                );
+                let res = client
+                    .post(&url)
+                    .bearer_auth(token)
+                    .form(&form_data)
+                    .send()
+                    .await?;
+
+                if res.status().is_success() {
+                    println!("Successfully updated appliance '{}'.", app.nickname);
+                } else {
+                    eprintln!(
+                        "Error updating appliance '{}': {}",
+                        app.nickname,
+                        res.status()
+                    );
+                    eprintln!("{}", res.text().await?);
                 }
             } else {
                 eprintln!("Appliance with ID '{}' not found.", appliance);
