@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use dotenvy::dotenv;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::env;
@@ -57,6 +58,7 @@ struct AcSettings {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenv().ok();
     let cli = Cli::parse();
 
     let token =

@@ -10,8 +10,10 @@ Currently, only Nature Remo is supported.
 
 Set your Nature Remo access token as an environment variable. You can get your token from [home.nature.global](https://home.nature.global/).
 
+Create `.env` file with following lines (or set as an environment variable):
+
 ```bash
-export NATURE_REMO_TOKEN='YOUR_NATURE_REMO_TOKEN'
+NATURE_REMO_TOKEN='YOUR_NATURE_REMO_TOKEN'
 ```
 
 ## Usage
